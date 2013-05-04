@@ -1,0 +1,33 @@
+\documentclass{article}
+\usepackage{amsmath}
+\usepackage{tikz,tkz-2d}
+\usepackage[np,autolanguage]{numprint}
+\begin{document}
+    \begin{tikzpicture}
+        \tkzInit
+        \tkzPoint(0,0){A}
+        \tkzPoint(4,0){B}
+        \tkzPoint(3,3){C}
+        \tkzPolygon(A,B,C)
+        \tkzRotate(C,90)(A/B)
+        \tkzDuplicateLength(A,C)(C,B){B}
+        \tkzPolygon(A,B,C)
+        \tkzVectorKLinear[k=0.5](C,B,C){B}
+        \tkzDrawPoint[color=red,namecolor=red](A)
+        \tkzDrawPoint[color=red,namecolor=red](B)
+        \tkzDrawPoint[color=red,namecolor=red](C)
+        \tkzPolygon(A,B,C)
+    \end{tikzpicture}
+
+    \begin{tikzpicture}
+        \tkzInit
+        \tkzPoint(-5,-5){I}
+        \tkzPoint(-4,-5){I1}
+        \tkzSegment(I/I1)
+        \tkzPoint(0,0){A}
+        \tkzPoint(3,3){B}
+        \tkzLine[kl=3,kr=3](A/B)
+        \tkzDuplicateLength(I,I1)(A,B){C}
+        \tkzVectorKLinear[k=3](A,C,A){C}
+   \end{tikzpicture}
+\end{document}

@@ -1,0 +1,213 @@
+\documentclass{article}
+
+\usepackage{tikz,tkz-2d}
+\usetikzlibrary{calc,intersections}
+
+\pagestyle{empty}
+
+\begin{document}
+\begin{tikzpicture}
+%----------------------------------------------------
+% Coordinates of A, B and C, the triangle vertices 
+%----------------------------------------------------
+\coordinate[label=above:$A$] (A) at (5,4);
+\coordinate[label=left:$B$] (B) at (0,0);
+\coordinate[label=right:$C$] (C) at (7,0);
+
+%----------------------------------------------------
+% Lengths of segments [AB], [BC], and [CA] 
+%----------------------------------------------------
+\tkzMathLength(B,C)
+\newlength{\la}
+\setlength{\la}{\tkzMathLen pt}
+\setlength{\la}{.01\la}
+\tkzMathLength(A,C)
+\newlength{\lb}
+\setlength{\lb}{\tkzMathLen pt}
+\setlength{\lb}{.01\lb}
+\tkzMathLength(A,B)
+\newlength{\lc}
+\setlength{\lc}{\tkzMathLen pt}
+\setlength{\lc}{.01\lc}
+
+%----------------------------------------------------
+% Computing 1/3 of each angle
+%----------------------------------------------------
+\pgfmathsetmacro{\A}{acos((\la*\la-\lb*\lb-\lc*\lc)/(-2*\lb*\lc))};
+\pgfmathsetmacro{\tA}{\A/3};
+\pgfmathsetmacro{\B}{acos((\lb*\lb-\la*\la-\lc*\lc)/(-2*\la*\lc))};
+\pgfmathsetmacro{\tB}{\B/3};
+\pgfmathsetmacro{\C}{acos((\lc*\lc-\lb*\lb-\la*\la)/(-2*\lb*\la))};
+\pgfmathsetmacro{\tC}{\C/3};
+
+%----------------------------------------------------
+% Computing intersections of trisector lines
+%----------------------------------------------------
+\coordinate (A1) at ($(A)!100*max(\lb,\lc)!\tA:(B)$);
+\coordinate (A2) at ($(A)!100*max(\lb,\lc)!2*\tA:(B)$);
+\coordinate (B1) at ($(B)!100*max(\la,\lc)!\tB:(C)$);
+\coordinate (B2) at ($(B)!100*max(\la,\lc)!2*\tB:(C)$);
+\coordinate (C1) at ($(C)!100*max(\la,\lb)!\tC:(A)$);
+\coordinate (C2) at ($(C)!100*max(\la,\lb)!2*\tC:(A)$);
+
+%----------------------------------------------------
+% Computing coordinates of vertices O, P and Q of 
+% the Morley's triangle 
+%----------------------------------------------------
+\coordinate (O) at (intersection of C--C1 and A--A2);
+\coordinate (P) at (intersection of A--A1 and B--B2);
+\coordinate (Q) at (intersection of B--B1 and C--C2);
+
+%----------------------------------------------------
+% Drawing triangles and trisectors
+%----------------------------------------------------
+\tkzMarkAngle[size=1,fillcolor=green!80](B/A/A1)
+\tkzMarkAngle[size=.9,fillcolor=green!80](A2/A/A1)
+\tkzMarkAngle[size=.8,fillcolor=green!80](A2/A/C)
+\tkzMarkAngle[size=1,fillcolor=blue!80](C/B/B1)
+\tkzMarkAngle[size=.9,fillcolor=blue!80](B2/B/B1)
+\tkzMarkAngle[size=.8,fillcolor=blue!80](B2/B/A)
+\tkzMarkAngle[size=1,fillcolor=red!80](A/C/C1)
+\tkzMarkAngle[size=.9,fillcolor=red!80](C2/C/C1)
+\tkzMarkAngle[size=.8,fillcolor=red!80](C2/C/B)
+\draw (A)--(B)--(C)--cycle;
+\draw[fill=orange, opacity=.4] 
+   (O)--node[sloped]{\tiny{//}}
+   (P)--node[sloped]{\tiny{//}}
+   (Q)--node[sloped]{\tiny{//}}(O);
+\draw (A)--(O) (A)--(P) (B)--(P) (B)--(Q) (C)--(Q) (C)--(O);
+
+%----------------------------------------------------
+% Caption
+%----------------------------------------------------
+\node[rounded corners, fill=purple!20,anchor=south east] at (3,3) 
+   {\begin{minipage}{5cm}
+     \textbf{Morley's triangle}\newline In any triangle, trisector 
+     lines intersect in 3 points that are vertices of an 
+     equilateral triangle.
+   \end{minipage}};
+
+\end{tikzpicture}
+
+\begin{tikzpicture}[scale=.8]
+\tkzInit[ymin=-5,ymax=10]
+\tkzClip[space=1]
+\tkzPoint[pos=below left](0,0){A}
+\tkzPoint(8,0){B}
+\tkzMidPoint[color=red](A,B){O}
+\tkzCircle*(A,B)
+\tkzPoint[pos=above right](3.5,10){I}
+\tkzSegment[lw=.5pt](I/A,I/B)
+\tkzInterLCR(I,A)(O,4 cm){A}{M}
+\tkzInterLCR(I,B)(O,4 cm){N}{B}
+\tkzDrawPoint[mark={},pos=left](M)
+\tkzDrawPoint[mark={},pos=right](N)
+\tkzSegment(A/B,B/M,A/N)
+\tkzRightAngle(A/M/B,A/N/B)
+\tkzProjection(A,B)(I/J)
+\tkzSegment[style=dashed,color=blue,lw=0.6pt](I/J)
+\tkzInterLL[color=red,namecolor=blue](A,N)(B,M){H}
+\end{tikzpicture}
+
+\begin{tikzpicture}
+\tkzInit
+\tkzPoint[noname](0,0){C}
+\tkzPoint[noname](4,0){A}
+\tkzPoint[noname](0,3){B}
+\tkzSquare*(B,A){E}{F}
+\tkzSquare*(A,C){G}{H}
+\tkzSquare*(C,B){I}{J}
+\tkzFillPolygon[color = green ](A,C,G,H)
+\tkzFillPolygon[color = blue ](C,B,I,J)
+\tkzFillPolygon[color = purple](B,A,E,F)
+\tkzPolygon[lw = 1pt](A,B,C)
+\tkzPolygon[lw = 1pt](A,C,G,H)
+\tkzPolygon[lw = 1pt](C,B,I,J)
+\tkzPolygon[lw = 1pt](B,A,E,F)
+\end{tikzpicture}
+
+\begin{tikzpicture}
+\tkzInit
+\tkzPoint(0,0){A} \tkzPoint(3,3){B}
+\tkzCircleR*[color=blue](B,B,A)
+\tkzCircleR*[color=blue](A,A,B)
+\tkzInterCC(B,B,A)(A,A,B){A2}{F}
+\tkzCircleR*[color=red](F,A,B)
+\tkzInterCC(F,A,B)(B,B,A){G}{A}
+\tkzInterCC(F,A,B)(A,A,B){B}{E}
+\tkzCircleR*[color=red](G,A,B)
+\tkzInterCC(G,A,B)(B,B,A){A7}{A8}
+\tkzCircleR*[color=red](A7,A,B)
+\tkzInterCC(A7,A,B)(G,B,A){A9}{H}
+\tkzDrawPoint[color=red](F,G,E,H)
+\tkzInterLL(E,A)(H,B){O}
+\tkzSegment[lw=.6 pt](A/B,O/H,O/E,E/H,F/O,G/O)
+\end{tikzpicture}
+
+\begin{tikzpicture}
+\tkzInit \tkzClip[space=.5]
+\tkzPoint[pos = below](0,0){C}\tkzPoint[pos = right](6,0){B}%
+\tkzPoint[pos = above](3,8){A}
+\tkzPolygon(A,B,C)%%
+\tkzInCenter(A,B,C){I}
+\tkzProjection(B,C)(I/H)
+\tkzProjection[pos = left](A,C)(I/K)
+\tkzProjection[pos = right](A,B)(I/L)
+\tkzSegment(I/L,I/H,I/K)
+\tkzCircle(I,H)
+\tkzRightAngle(A/L/I,B/H/I,C/K/I)
+\tkzSegmentMark[label = $r$,poslabel = -12pt](C/H)
+\tkzSegmentMark[label = $a-r$,poslabel = -12pt](H/B)
+\tkzSegmentMark[label = $r$](C/K)
+\tkzSegmentMark[label = $b-r$](K/A)
+\tkzSegmentMark[label = $a-r$](L/B)
+\tkzSegmentMark[label = $b-r$](A/L)
+\tkzSegmentMark[label = $r$](I/L)
+\end{tikzpicture}
+
+\newcommand*{\CircleInscribing}[2]{%
+\xdef\ORadius{#1}
+\xdef\OORadius{#2}
+\pgfmathparse{(2*(\ORadius-\OORadius))/(\ORadius/\OORadius+1)}%
+\global\let\OOORadius\pgfmathresult%
+\pgfmathparse{\ORadius-\OOORadius}%
+\global\let\OOOORadius\pgfmathresult%
+\pgfmathparse{2*\OORadius-\ORadius}%
+\global\let\XA\pgfmathresult%
+\tkzPoint[pos = below left](0,0){O}
+\ifdim\XA pt = 0pt\relax%
+\tkzPoint[pos = below right](\XA,0){A}
+\else%
+\tkzPoint[pos = below left](\XA,0){A}
+\fi%
+\tkzPoint[pos = below left](\OORadius,0){D}
+\tkzPoint[pos = below left](-\ORadius,0){X}
+\tkzPoint[pos = below right](\ORadius,0){B}
+\tkzPoint[name = $O_2$,pos = below left](\OORadius-\ORadius,0){O2}
+\tkzSegmentMark[symbol = /](D/B,D/A)
+\tkzCircleR(O,\ORadius)
+\tkzCircleR(O2,\OORadius)
+\tkzMediatorLine[prefix = m,kr = 2,kl = 0,style = dashed](A,B)
+\tkzInterLCR(ml,mr)(O,\ORadius cm){C}{E}
+\tkzLineOrth*[prefix = p](X,A)(A)
+\ifdim\XA pt < 0 pt\relax%
+\tkzInterLCR(pl,pr)(O,\OOOORadius cm){O4}{O3}
+\else%
+\tkzInterLCR(pr,pl)(O,\OOOORadius cm){O3}{O4}
+\fi%
+\tkzRightAngle(X/D/C,X/A/O3)
+\tkzCircleR(O3,\OOORadius)
+\tkzDrawPoint[name = $O_3$,pos = right](O3)
+\tkzDrawPoint[pos = above right](C)
+\tkzSegment[style = dashed](O/O3)
+\tkzSegment(A/O3,C/B,C/A,X/B)
+\tkzInterLCR(O,O3)(O,\ORadius cm){W}{Z}
+\tkzSegment[label = $a$,time = .85,style = dashed](O/Z)
+}%
+\begin{tikzpicture}[scale = 1]
+\tkzInit[xmin = -7,xmax = 7,ymin = -7,ymax = 7]
+\tkzClip
+\CircleInscribing{6}{4}
+\end{tikzpicture}
+\end{document}
+
