@@ -1,0 +1,418 @@
+%{
+#include"point.h"
+#include"line.h"
+#include"angle.h"
+#include"triangle.h"
+#include"quadrangle.h"
+#include"polygon.h"
+#include"arc.h"
+#include"circle.h"
+#include"tlist.h"
+#include"object.h"
+#include"random.h"
+#include"relation.h"
+#include"utility.h"
+#include<string>
+#include<iostream>
+using namespace std;
+
+#define YYSTYPE char *
+
+extern int yylex();
+int yyerror( char * );
+List<Object *> * objList;
+Random *genCM;
+Coord * crd;
+List<Point *> * polygon;
+%}
+
+%token END DOT LP RP
+%token OBJECTV POINTV NUM UNIT
+%token IS PASS AS DRAW AUXILIARY UP OUT IN AND AT TO
+%token POINT MIDPOINT ENDPOINT INTERSECTPOINT TANGENTPOINT INCENTER OUTCENTER GCENTER VCENTER CCENTER ACENTER
+%token SEGMENT LINE RAY HEIGHTLINE MIDLINE TANGENTLINE COMMONTANGENTLINE INNERTANGENTLINE OUTERTANGENTLINE RADIUS 
+%token DIAMETER EXTENDLINE REEXTENDLINE DIAGONAL EDIVISIONLINE PBLINE VERTICALINE PARALLELINE
+%token TRIANGLE ISOTRIANGLE EQUTRIANGLE RIGHTTRIANGLE OBTTRIANGLE ACUTRIANGLE INTOUCHTRIANGLE OUTANGENTRIANGLE RIGHTDTRIANGLE
+%token RIGHTANGLE ACUTEANGLE OBTUSEANGLE ANGLE
+%token QUADRANGLE PARALELLQUADRANGLE RECTANGLE SQUARE DIAMOND LADDER ISOLADDER RIGHTLADDER
+%token CIRCLE INTANGENTCIRCLE OUTOUCHCIRCLE ARC
+%token EQUAL SMALLER GREATER PLUS MINUS MULTI DIVIDE POWER MOD
+%token INTERSECT PERPEND PARALLEL TANGENT EDIVISION LINK PROLONG REPROLONG PEBI INTOUCH INTANGENT OUTOUCH OUTANGENT SAMECENTER
+%token POLYGON
+
+%%
+input:	sentences{
+			tkzStart();
+			objList->prePrint();
+			objList->print();
+			tkzEnd();
+		}
+
+sentences:	/*空*/
+		|	sentence sentences
+		;
+		
+
+sentence:	stmt END
+		|	error
+		;
+
+
+stmt:	point_stmt
+		|	line_stmt
+		|	angle_stmt
+		|	triangle_stmt
+		|	quadrangle_stmt
+		|	polygon_stmt
+		/*	arc_stmt */
+		|	circle_stmt
+		|	exp_stmt
+		;
+
+/****************************************************点申明*****************************************************************/
+point_stmt:		point_type POINTV IS coord{
+				Point * p = addPIntoL( $2 );
+				p->setCoord( crd );
+			}
+			|	point_type POINTV AT line_type POINTV POINTV UP{													/*点在线上*/
+				Point * p1 = addPIntoL( $2 );
+				Line * l = addLIntoL( $5, $6, $4 );
+				l->addPoint( p1 );
+			}
+			|	POINTV IS line_type POINTV POINTV AUXILIARY MIDPOINT{												/*点是线的中点*/
+				Point * p1 = addPIntoL( $1 );
+				Line * l = addLIntoL( $4, $5, $3 );
+				l->setMidP( p1 );
+			}
+			|	POINTV IS triangle_type POINTV POINTV POINTV AUXILIARY INCENTER{									/*点是三角形的内心*/
+				Triangle * tri = addTIntoL( $4, $5, $6, $3 );
+				Point * p1 = addPIntoL( $1 );
+				tri->setInCenter( p1 );
+			}
+			|	POINTV IS triangle_type POINTV POINTV POINTV AUXILIARY OUTCENTER{									/*点是三角形的外心*/
+				Triangle * tri = addTIntoL( $4, $5, $6, $3 );
+				Point * p1 = addPIntoL( $1 );
+				tri->setCircumCenter( p1 );
+			}
+			|	POINTV IS triangle_type POINTV POINTV POINTV AUXILIARY GCENTER{										/*点是三角形的重心*/
+				Triangle * tri = addTIntoL( $4, $5, $6, $3 );
+				Point * p1 = addPIntoL( $1 );
+				tri->setGCenter( p1 );
+			}
+			|	POINTV IS triangle_type POINTV POINTV POINTV AUXILIARY VCENTER{										/*点是三角形的垂心*/
+				Triangle * tri = addTIntoL( $4, $5, $6, $3 );
+				Point * p1 = addPIntoL( $1 );
+				tri->setOrthCenter( p1 );
+			}
+			
+			|	POINTV IS circle_type OBJECTV AUXILIARY CCENTER{													/*点是圆的圆心*/
+				Point * p = addPIntoL( $1 );
+				Circle * c = addCIntoL( $4 );
+				c->setC( p );
+			}
+			
+			|	POINTV IS line_type POINTV POINTV AND line_type POINTV POINTV AUXILIARY INTERSECTPOINT{				/*点是线与线的交点*/
+				Line * l1 = addLIntoL( $4, $5, $3 );
+				Line * l2 = addLIntoL( $8, $9, $7 );
+				Point * p = addPIntoL( $1 );
+				LLRelationInt * r = new LLRelationInt( l1, l2, p );
+				l1->addRelation( r );l2->addRelation( r );
+			}
+			
+			|	POINTV IS line_type POINTV POINTV AND circle_type OBJECTV AUXILIARY TANGENTPOINT{					/*点是线与圆的切点*/
+				Circle * c = addCIntoL( $8 );
+				Line * l = addLIntoL( $4, $5, $3 );
+				Point * p = addPIntoL( $1 );
+				LCRelationTg * r = new LCRelationTg( l, c, p );
+				l->addRelation( r );
+			}
+			|	POINTV IS circle_type OBJECTV AND circle_type OBJECTV AUXILIARY TANGENTPOINT{						/*点是圆与圆的切点*/
+				/*can not finish*/
+			}
+			
+			|	POINTV AND POINTV IS line_type POINTV POINTV AND circle_type OBJECTV AUXILIARY INTERSECTPOINT{		/*两点是线与圆的交点*/
+				Line * l = addLIntoL( $6, $7, $5 );
+				Point * p1 = addPIntoL( $1 );
+				Point * p2 = addPIntoL( $3 );
+				Circle * c = addCIntoL( $10 );
+				LCRelationInt * r = new LCRelationInt( l, c, p1, p2 );
+				c->addRelation( r );
+			}
+			|	POINTV AND POINTV IS circle_type OBJECTV AND circle_type OBJECTV AUXILIARY INTERSECTPOINT{			/*两点是圆与圆的交点*/
+				Point * p1 = addPIntoL( $1 );Point * p2 = addPIntoL( $3 );
+				Circle * c1 = addCIntoL( $6 );Circle * c2 = addCIntoL( $9 );
+				CCRelationInt * r = new CCRelationInt( c1, c2, p1, p2 );
+				c2->addRelation( r );	
+			}
+			;
+			
+/****************************************************线申明*****************************************************************/
+line_stmt:		line_type POINTV POINTV IS NUM{
+					double d = sToD( $5 );
+					Line * l = addLIntoL( $2, $3, $1 );
+					l->setLength( d );
+				}
+			|	line_type POINTV POINTV AND line_type POINTV POINTV PARALLEL{									/*线与线的平行关系*/
+				Line * l1 = addLIntoL( $2, $3, $1 );
+				Line * l2 = addLIntoL( $6, $7, $5 );
+				LLRelationPara * r = new LLRelationPara( l1, l2 );
+				l2->addRelation( r );
+			}
+			|	line_type POINTV POINTV AND line_type POINTV POINTV INTERSECT AT point_type POINTV{				/*线与线的相交关系*/
+				Point * p = addPIntoL( $11 );
+				Line * l1 = addLIntoL( $2, $3, $1 );
+				Line * l2 = addLIntoL( $6, $7, $5 );
+				LLRelationInt * r = new LLRelationInt( l1, l2, p );
+				l2->addRelation( r );
+				tkzStart();
+			objList->prePrint();
+			objList->print();
+			tkzEnd();
+			}
+			|	line_type POINTV POINTV AND line_type POINTV POINTV PERPEND AT point_type POINTV{				/*线与线的垂直关系*/
+				Point * p = addPIntoL( $11 );
+				Line * l1 = addLIntoL( $2, $3, $1 );
+				Line * l2 = addLIntoL( $6, $7, $5 );
+				LLRelationOrth * r = new LLRelationOrth( l1, l2, p );
+				l2->addRelation( r );
+			}
+			|	line_type POINTV POINTV PEBI line_type POINTV POINTV AT point_type POINTV{						/*线垂直平分线于点*/
+				Line * l2 = addLIntoL( $6, $7, $5 );
+				Line * l1 = addLIntoL( $2, $3, $1 );
+				Point * p =addPIntoL( $10 );
+				l2->setMidP( p );
+				l2->setMidOrthL( l1 );
+			}
+			|	line_type POINTV POINTV EDIVISION line_type POINTV POINTV AT point_type POINTV{					/*线平分线于点*/
+				Line * l2 = addLIntoL( $6, $7, $5 );
+				Line * l1 = addLIntoL( $2, $3, $1 );
+				Point * p = addPIntoL( $10 );
+				l2->setMidP( p );
+			}
+			
+			|	line_type POINTV POINTV EDIVISION angle_type POINTV POINTV POINTV{								/*线平分角*/
+				Line * l = addLIntoL( $2, $3, $1 );
+				Angle * an = addAnIntoL( $6, $7, $8, $5 );
+				Point * p = addPIntoL( $3 );
+				an->setBisector( l );
+				
+			}
+			|	POINTV POINTV IS angle_type POINTV POINTV POINTV AUXILIARY EDIVISIONLINE{						/*线是角的平分线*/
+				Line * l = addLIntoL( $1, $2, $9 );
+				Angle * an = addAnIntoL( $5, $6, $7, $4 );
+				an->setBisector( l );
+			}
+			
+			|	POINTV POINTV IS triangle_type POINTV POINTV POINTV AUXILIARY MIDLINE{							/*线是三角形的中线*/
+				Point * p = addPIntoL( $2 );
+				Line * l = addLIntoL( $1, $2, $9 );
+				Triangle * tri = addTIntoL( $5, $6, $7, $4 );
+				Line * l1 = findLInL( $5, $6 );Line * l2 = findLInL( $6, $7 );Line * l3 = findLInL( $5, $7 );
+				if( strcmp( $1, $5 ) == 0 ){
+					tri->setMedian( l, 1 );
+					l2->setMidP( p );
+				}else if( strcmp( $1, $6 ) == 0 ){
+					tri->setMedian( l, 2 );
+					l3->setMidP( p );
+				}else if( strcmp( $1, $7 ) == 0 ){
+					tri->setMedian( l, 3 );
+					l1->setMidP( p );
+				}
+				else ;
+			}
+			|	POINTV POINTV IS triangle_type POINTV POINTV POINTV AUXILIARY HEIGHTLINE{						/*线是三角形的高*/
+				Line * l = addLIntoL( $1, $2, $9 );
+				Triangle * tri = addTIntoL( $5, $6, $7, $4 );
+				if( strcmp( $1, $5 ) == 0 )
+					tri->setAltitude( l, 1 );
+				else if( strcmp( $1, $6 ) == 0 )
+					tri->setAltitude( l, 2 );
+				else if( strcmp( $1, $7 ) == 0 )
+					tri->setAltitude( l, 3 );
+				else ;
+				
+			}
+			
+			|	POINTV POINTV IS circle_type OBJECTV AUXILIARY DIAMETER{										/*线是圆的直径*/
+				Line * l = addLIntoL( $1, $2, $7 );
+				Circle * c = addCIntoL( $5 );
+				c->setDiameter( l );
+			}
+			|	POINTV POINTV IS circle_type OBJECTV AUXILIARY RADIUS{											/*线是圆的半径*/
+				Line * l = addLIntoL( $1, $2, $7 );
+				Circle * c = addCIntoL( $5 );
+				Point * p1 = findPInL( $1 );
+				Point * p2 = findPInL( $2 );
+				c->setC( p1 );
+				c->addPoint( p2 );
+			}
+			|	line_type POINTV POINTV AND circle_type OBJECTV TANGENT AT point_type POINTV{					/*线与圆相切于点*/
+				Circle * c = addCIntoL( $6 );
+				Line * l = addLIntoL( $2, $3, $1 );
+				Point * p = addPIntoL( $10 );
+				LCRelationTg * r = new LCRelationTg( l, c, p );
+				l->addRelation( r );
+			}
+			|	line_type POINTV POINTV AND circle_type OBJECTV INTERSECT AT point_type POINTV DOT POINTV{		/*线与圆相交于两点*/
+				Line * l = addLIntoL( $2, $3, $1 );
+				Point * p1 = addPIntoL( $10 );
+				Point * p2 = addPIntoL( $12 );
+				Circle * c = addCIntoL( $6 );
+				LCRelationInt * r = new LCRelationInt( l, c, p1, p2 );
+				c->addRelation( r );
+			}
+			;
+
+
+/**************************************************************角类申明***********************************************************/	
+angle_stmt:	POINTV POINTV POINTV IS angle_type{
+			Angle * an = addAnIntoL( $1, $2, $3, $5 );
+		}
+		|	angle_type POINTV POINTV POINTV IS NUM{
+			double d = sToD( $6 );
+			Angle * an = addAnIntoL( $2, $3, $4, $1 );
+			an->setD( d );
+		}
+		;
+/*************************************************************三角形声明**********************************************************/
+triangle_stmt:	POINTV POINTV POINTV IS triangle_type{										/*点点点是三角形*/
+				addTIntoL( $1, $2, $3, $5 );
+			}
+			|	POINTV POINTV POINTV IS circle_type OBJECTV AUXILIARY OUTANGENTRIANGLE{		/*点点点是圆的外切三角形*/
+				Triangle * tri = addTIntoL( $1, $2, $3, $8 );
+				Circle * c = addCIntoL( $6 );
+				tri->setCircumC( c );
+			}
+			|	POINTV POINTV POINTV IS circle_type OBJECTV AUXILIARY INTOUCHTRIANGLE{		/*点点点是圆的内接三角形*/
+				Triangle * tri = addTIntoL( $1, $2, $3, $8 );
+				Circle * c = addCIntoL( $6 );
+				tri->setInC( c );
+			}
+/***********************************************************四边形声明************************************************************/
+quadrangle_stmt:	POINTV POINTV POINTV POINTV IS quadrangle_type{
+				addQIntoL( $1, $2, $3, $4, $6 );
+			}
+/***********************************************************多边形声明************************************************************/
+polygon_stmt:	pointvs IS polygon_type
+/**************************************************************圆类申明***********************************************************/	
+circle_stmt:	OBJECTV IS circle_type{																/*o是圆*/
+				addCIntoL( $1 );
+			}
+			|	OBJECTV IS AS POINTV IS CCENTER DOT POINTV POINTV IS RADIUS AUXILIARY circle_type{	/*圆是以点为圆心、线为半径的圆*/
+				Point * p1 = addPIntoL( $4 );
+				Point * p2 = addPIntoL( $9 );
+				Line * l = addLIntoL( $8, $9, $11 );
+				Circle * c = addCIntoL( $1 );
+				c->addPoint( p2 );
+				c->setC( p1 );
+			}
+			|	OBJECTV IS AS POINTV IS CCENTER DOT NUM IS RADIUS AUXILIARY circle_type{	/*圆是以点为圆心、线为半径的圆*/
+				Point * p = addPIntoL( $4 );
+				double r = sToD( $8 );
+				Circle * c = addCIntoL( $1 );
+				c->setC( p );
+				c->setRadius( r );
+			}
+			|	OBJECTV IS triangle_type POINTV POINTV POINTV AUXILIARY INTANGENTCIRCLE{			/*圆是三角形的内切圆*/
+				Circle * c = addCIntoL( $1 );
+				Triangle * tri = addTIntoL( $4, $5, $6, $3 );
+				tri->setInC( c );
+			}
+			|	OBJECTV IS triangle_type POINTV POINTV POINTV AUXILIARY OUTOUCHCIRCLE{				/*圆是三角形的外接圆*/
+				Circle * c = addCIntoL( $1 );
+				Triangle * tri = addTIntoL( $4, $5, $6, $3 );
+				tri->setCircumC( c );
+			}
+			|	circle_type OBJECTV OUTOUCH AT triangle_type POINTV POINTV POINTV{					/*圆外接于三角形*/
+				Circle * c = addCIntoL( $2 );
+				Triangle * tri = addTIntoL( $6, $7, $8, $5 );
+				tri->setCircumC( c );
+			}
+			|	circle_type OBJECTV INTANGENT AT triangle_type POINTV POINTV POINTV{				/*圆内切于三角形*/
+				Circle * c = addCIntoL( $2 );
+				Triangle * tri = addTIntoL( $6, $7, $8, $5 );
+				tri->setInC( c );
+			}
+			
+			|	circle_type OBJECTV AND line_type POINTV POINTV TANGENT AT point_type POINTV{		/*圆与线相切于点*/
+				Circle * c = addCIntoL( $2 );
+				Line * l = addLIntoL( $5, $6, $4 );
+				Point * p = addPIntoL( $10 );
+				LCRelationTg * r = new LCRelationTg( l, c, p );
+				l->addRelation( r );
+			}
+			|	circle_type OBJECTV AND line_type POINTV POINTV INTERSECT AT point_type POINTV DOT POINTV{		/*圆与线相交于两点*/
+				Line * l = addLIntoL( $5, $6, $4 );
+				Point * p1 = addPIntoL( $10 );
+				Point * p2 = addPIntoL( $12 );
+				Circle * c = addCIntoL( $2 );
+				LCRelationInt * r = new LCRelationInt( l, c, p1, p2 );
+				c->addRelation( r );
+			}
+			
+			|	circle_type OBJECTV AND circle_type OBJECTV TANGENT AT point_type POINTV					/*圆与圆相切于点*/
+			|	circle_type OBJECTV AND circle_type OBJECTV INTERSECT AT point_type POINTV DOT POINTV{		/*圆与圆相交于两点*/
+				Point * p1 = addPIntoL( $9 );Point * p2 = addPIntoL( $11 );
+				Circle * c1 = addCIntoL( $2 );Circle * c2 = addCIntoL( $5 );
+				CCRelationInt * r = new CCRelationInt( c1, c2, p1, p2 );
+				c2->addRelation( r );
+			}
+			;
+/**************************************************************表达式申明***********************************************************/	
+exp_stmt:	line_exp_stmt | angle_exp_stmt
+
+line_exp_stmt:	POINTV POINTV EQUAL NUM{
+				double d = sToD( $4 );
+				Line * l = addLIntoL( $1, $2, "线段" );
+				l->setLength( d );
+			}
+			|	POINTV POINTV EQUAL POINTV POINTV{
+				Line * l1 = addLIntoL( $1, $2, "线段" );
+				Line * l2 = addLIntoL( $4, $5, "线段" );
+				LLNumRelation * r = new LLNumRelation( l1, l2, 1.0 );
+				l2->addRelation(r);
+			}
+			|	POINTV POINTV EQUAL NUM POINTV POINTV
+			|	NUM POINTV POINTV EQUAL POINTV POINTV
+			|	NUM POINTV POINTV EQUAL NUM POINTV POINTV
+			;
+angle_exp_stmt:	POINTV POINTV POINTV EQUAL NUM
+			|	POINTV POINTV POINTV EQUAL POINTV POINTV POINTV
+			|	POINTV POINTV POINTV EQUAL NUM POINTV POINTV POINTV
+			|	NUM POINTV POINTV POINTV EQUAL POINTV POINTV POINTV
+			|	NUM POINTV POINTV POINTV EQUAL NUM POINTV POINTV POINTV
+			;
+
+pointvs:	POINTV POINTV POINTV POINTV POINTV point_flw
+point_flw:	/*空*/
+		|	POINTV point_flw;
+
+
+point_type:	POINT{ $$ = $1 };
+line_type:	LINE { $$ = $1 }| RAY { $$ = $1 } | SEGMENT { $$ = $1 };
+angle_type:	RIGHTANGLE { $$ = $1 } | ACUTEANGLE { $$ = $1 } | OBTUSEANGLE { $$ = $1 } | ANGLE { $$ = $1 } ;
+triangle_type:	TRIANGLE { $$ = $1 } | ISOTRIANGLE { $$ = $1 } | EQUTRIANGLE { $$ = $1 } 
+			|	RIGHTTRIANGLE { $$ = $1 } | OBTTRIANGLE { $$ = $1 } | ACUTRIANGLE { $$ = $1 }
+			|	RIGHTDTRIANGLE { $$ = $1 }
+quadrangle_type:	 QUADRANGLE { $$ = $1 } | PARALELLQUADRANGLE { $$ = $1 } | RECTANGLE { $$ = $1 } 
+			|	SQUARE { $$ = $1 } | DIAMOND { $$ = $1 } | LADDER { $$ = $1 } | ISOLADDER { $$ = $1 } | RIGHTLADDER { $$ = $1 }
+polygon_type:	POLYGON { $$ = $1 };
+circle_type:	CIRCLE { $$ = $1 };
+
+
+coord:	LP NUM END NUM RP{
+			double x = sToD( $2 );
+			double y = sToD( $4 );
+			crd = new Coord( x, y );
+		}
+%%
+void main()
+{
+	init();
+	yyparse();
+}
+int yyerror( char * s )
+{
+	fprintf( stderr,"%s\n", s );
+	return 0;
+}
